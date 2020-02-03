@@ -1,30 +1,30 @@
-#Link Shortener
+# Link Shortener
 
 
-#Motivation
+# Motivation
 
-#Build Status
+# Build Status
 
-#Code Style
+# Code Style
 
-#Screenshots
+# Screenshots
 
-#Tech/framework Used
+# Tech/framework Used
 
-#Features
+# Features
 
-#Code Example
+# Code Example
 
-#Installation
+# Installation
 
-#API Reference
+# API Reference
 
-#Tests
+# Tests
 
-#How to use?
+# How to use?
 
-#Contribute
+# Contribute
 
-#Credits
+# Credits
 
-#License
+# License
