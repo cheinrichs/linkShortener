@@ -93,7 +93,7 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	encodedString := base64.URLEncoding.EncodeToString([]byte(string(id)))
 
 	response := Response{
-		Status: "Success",
+		Status: "success",
 		Data:   encodedString,
 	}
 
@@ -102,6 +102,41 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
+	type Response struct {
+		Status string `json:"status,omitempty"`
+		Data   int    `json:"data,omitempty"`
+	}
+
+	vars := mux.Vars(r)
+
+	var decodedString, _ = base64.StdEncoding.DecodeString(vars["redirectHash"])
+	db := dbConn()
+	defer db.Close()
+
+	sqlStatement := `SELECT COUNT(*) FROM link_statistics WHERE link_id=$1;`
+
+	var count int
+
+	row := db.QueryRow(sqlStatement, decodedString[0])
+	err := row.Scan(&count)
+	switch err {
+	case sql.ErrNoRows:
+		count = 0
+	case nil:
+		fmt.Println(count)
+	default:
+		panic(err)
+	}
+
+	response := Response{
+		Status: "success",
+		Data:   count,
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+func linkTimeSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	type Response struct {
 		Status string   `json:"status,omitempty"`
 		Data   []string `json:"data,omitempty"`
@@ -142,7 +177,7 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(data)
 
 	response := Response{
-		Status: "Success",
+		Status: "success",
 		Data:   data,
 	}
 
@@ -155,6 +190,7 @@ func main() {
 
 	router.HandleFunc("/createLink", createLinkEndpoint).Methods("POST")
 	router.HandleFunc("/linkStatistics/{redirectHash}", linkStatisticsEndpoint).Methods("GET")
+	router.HandleFunc("/linkTimeSeries/{redirectHash}", linkTimeSeriesEndpoint).Methods("GET")
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":12345", router))
