@@ -24,24 +24,29 @@ var port, portError = os.LookupEnv("PORT")
 var user, userError = os.LookupEnv("USER")
 var dbname, dbnameError = os.LookupEnv("DBNAME")
 
-func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	var decodedByte, _ = base64.StdEncoding.DecodeString(vars["redirectHash"])
-	var decodedString = string(decodedByte)
-	var url string
-
+func dbConn() (db *sql.DB) {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable",
 		host, port, user, dbname)
-	db, dbErr := sql.Open("postgres", psqlInfo)
-	if dbErr != nil {
-		panic(dbErr)
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		panic(err)
 	}
+	return db
+}
+
+func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	var decodedString, _ = base64.StdEncoding.DecodeString(vars["redirectHash"])
+
+	var url string
+
+	db := dbConn()
 	defer db.Close()
 
 	sqlStatement := `SELECT url FROM links WHERE id=$1;`
 
-	row := db.QueryRow(sqlStatement, decodedString)
+	row := db.QueryRow(sqlStatement, decodedString[0])
 	err := row.Scan(&url)
 	switch err {
 	case sql.ErrNoRows:
@@ -52,48 +57,38 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
+	statisticsSQL := `INSERT INTO link_statistics (link_id, viewtime)
+					 VALUES ($1, current_timestamp)`
+
+	_, statisticsErr := db.Exec(statisticsSQL, decodedString[0])
+	if statisticsErr != nil {
+		panic(statisticsErr)
+	}
+
 	http.Redirect(w, r, url, http.StatusSeeOther)
 }
 
-func createLinkEndpoint(w http.ResponseWriter, req *http.Request) {
+func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
-	req.ParseForm()
+	r.ParseForm()
 
-	fmt.Println(req.FormValue("url"))
-	//TODO: check to see if it's null and if not return a false
 	//TODO: sanitize the data
-	//TODO: return the correct hash
-
-	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable",
-		host, port, user, dbname)
-	db, err := sql.Open("postgres", psqlInfo)
-	if err != nil {
-		panic(err)
-	}
+	db := dbConn()
 	defer db.Close()
 
 	var id int
-	link := req.FormValue("url")
+	link := r.FormValue("url")
 
-	sqlStatement := `INSERT INTO links (url) 
+	sqlStatement := `INSERT INTO links (url)
 					 VALUES ($1)
 					 RETURNING id`
 
-	err = db.QueryRow(sqlStatement, link).Scan(&id)
+	err := db.QueryRow(sqlStatement, link).Scan(&id)
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println("New record ID is:", id)
 
 	encodedString := base64.URLEncoding.EncodeToString([]byte(string(id)))
-	fmt.Printf("Encoded: %s\n", encodedString)
-
-	raw, err := base64.URLEncoding.DecodeString(encodedString)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Decoded:", raw)
 
 	response := Response{
 		Status: "Success",
@@ -103,15 +98,26 @@ func createLinkEndpoint(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
+
+	db := dbConn()
+	defer db.Close()
+
+	response := Response{
+		Status: "Success",
+		Data:   "",
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
 func main() {
 
 	router := mux.NewRouter()
 
-	//TODO: implement GET redirect
-	//TODO: implement GET stats
-
+	router.HandleFunc("/createLink", createLinkEndpoint).Methods("POST")
+	router.HandleFunc("/linkStatistics/{redirectHash}", linkStatisticsEndpoint).Methods("GET")
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
-	router.HandleFunc("/createlink", createLinkEndpoint).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":12345", router))
 }
