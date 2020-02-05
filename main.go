@@ -8,12 +8,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
 
-//Response is an object returned to the caller that contains the requested data, error information, and a success status
+type Timestamp time.Time
+
 type Response struct {
 	Status string `json:"status,omitempty"`
 	Data   string `json:"data,omitempty"`
@@ -57,8 +59,8 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	statisticsSQL := `INSERT INTO link_statistics (link_id, viewtime)
-					 VALUES ($1, current_timestamp)`
+	statisticsSQL := `INSERT INTO link_statistics (link_id)
+					 VALUES ($1)`
 
 	_, statisticsErr := db.Exec(statisticsSQL, decodedString[0])
 	if statisticsErr != nil {
@@ -100,12 +102,48 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
+	type Response struct {
+		Status string   `json:"status,omitempty"`
+		Data   []string `json:"data,omitempty"`
+	}
+
+	vars := mux.Vars(r)
+
+	var decodedString, _ = base64.StdEncoding.DecodeString(vars["redirectHash"])
 	db := dbConn()
 	defer db.Close()
 
+	fmt.Println(decodedString[0])
+
+	sqlStatement := `SELECT viewed_at FROM link_statistics WHERE link_id=$1;`
+
+	rows, err := db.Query(sqlStatement, decodedString[0])
+	defer rows.Close()
+
+	data := make([]string, 0)
+
+	for rows.Next() {
+		var viewedAt Timestamp
+
+		err = rows.Scan(&viewedAt)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(viewedAt)
+
+		stamp := fmt.Sprintf("\"%s\"", time.Time(viewedAt).Format("2 Jan 2006 15:04:05 -0700 MST"))
+		data = append(data, stamp)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(data)
+
 	response := Response{
 		Status: "Success",
-		Data:   "",
+		Data:   data,
 	}
 
 	json.NewEncoder(w).Encode(response)
