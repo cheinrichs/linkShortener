@@ -21,11 +21,6 @@ type Response struct {
 	Data   string `json:"data,omitempty"`
 }
 
-// var host, hostError = os.LookupEnv("HOST")
-// var port, portError = os.LookupEnv("PORT")
-// var user, userError = os.LookupEnv("USER")
-// var dbname, dbnameError = os.LookupEnv("DATABASE")
-
 var dbURL, err = os.LookupEnv("DATABASE_URL")
 
 func dbConn() (db *sql.DB) {
