@@ -1,3 +1,5 @@
+module github.com/cheinrichs/linkShortener
+
 go 1.12
 
 require (
@@ -9,3 +11,5 @@ require (
 	golang.org/x/net v0.0.0-20150629084131-d9558e5c97f8 // indirect
 	gopkg.in/bluesuncorp/validator.v5 v5.9.1 // indirect
 )
+
+module linkShortener
