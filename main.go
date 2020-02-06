@@ -19,7 +19,7 @@ var dbError bool
 var port string
 var portError bool
 var host string
-var hostError error
+var hostError bool
 
 type Timestamp time.Time
 
@@ -83,8 +83,6 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	var id int
 	link := r.PostFormValue("url")
 
-	fmt.Println(link)
-
 	sqlStatement := `INSERT INTO links (url)
 					 VALUES ($1)
 					 RETURNING id`
@@ -98,7 +96,7 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	response := Response{
 		Status: "success",
-		Data:   encodedString,
+		Data:   host + encodedString,
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -186,11 +184,8 @@ func main() {
 
 	dbURL, dbError = os.LookupEnv("DATABASE_URL")
 	port, portError = os.LookupEnv("PORT")
+	host, hostError = os.LookupEnv("HOST_URI")
 	defaultPort := "8080"
-
-	host, hostError = os.Hostname()
-	fmt.Println("hostname", string(host))
-	fmt.Println(hostError)
 
 	router := mux.NewRouter()
 
