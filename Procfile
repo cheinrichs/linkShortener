@@ -1,1 +1,1 @@
-web: linkShortener
+web: bin/linkShortener
