@@ -19,7 +19,7 @@ var dbError bool
 var port string
 var portError bool
 var host string
-var hostError bool
+var hostError error
 
 type Timestamp time.Time
 
@@ -188,7 +188,7 @@ func main() {
 	port, portError = os.LookupEnv("PORT")
 	defaultPort := "8080"
 
-	host, hostError = os.LookupEnv("HOST")
+	host, hostError = os.Hostname()
 	fmt.Println(host)
 	fmt.Println(hostError)
 
