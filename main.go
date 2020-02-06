@@ -147,8 +147,6 @@ func linkTimeSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 	db := dbConn()
 	defer db.Close()
 
-	fmt.Println(decodedString[0])
-
 	sqlStatement := `SELECT viewed_at FROM link_statistics WHERE link_id=$1;`
 
 	rows, err := db.Query(sqlStatement, decodedString[0])
@@ -164,16 +162,12 @@ func linkTimeSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 
-		fmt.Println(viewedAt)
-
 		stamp := fmt.Sprintf("\"%s\"", time.Time(viewedAt).Format("2 Jan 2006 15:04:05 -0700 MST"))
 		data = append(data, stamp)
 	}
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(data)
 
 	response := Response{
 		Status: "success",
