@@ -18,6 +18,8 @@ var dbURL string
 var dbError bool
 var port string
 var portError bool
+var host string
+var hostError bool
 
 type Timestamp time.Time
 
@@ -195,5 +197,5 @@ func main() {
 	router.HandleFunc("/linkTimeSeries/{redirectHash}", linkTimeSeriesEndpoint).Methods("GET")
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(port, router))
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
