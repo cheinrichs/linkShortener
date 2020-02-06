@@ -71,14 +71,17 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+	err := r.ParseForm()
+	if err != nil {
+		// Handle error here via logging and then return
+	}
 
 	//TODO: sanitize the data
 	db := dbConn()
 	defer db.Close()
 
 	var id int
-	link := vars["url"]
+	link := r.PostFormValue("url")
 
 	fmt.Println(link)
 
