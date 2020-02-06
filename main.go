@@ -189,7 +189,7 @@ func main() {
 	defaultPort := "8080"
 
 	host, hostError = os.Hostname()
-	fmt.Println("hostname", host)
+	fmt.Println("hostname", string(host))
 	fmt.Println(hostError)
 
 	router := mux.NewRouter()
