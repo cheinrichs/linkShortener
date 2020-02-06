@@ -175,6 +175,9 @@ func linkTimeSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	fmt.Println(port)
+	fmt.Println(portError)
+
 	router := mux.NewRouter()
 
 	router.HandleFunc("/createLink", createLinkEndpoint).Methods("POST")
