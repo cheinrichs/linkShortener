@@ -183,7 +183,7 @@ func main() {
 	port, portError = os.LookupEnv("PORT")
 
 	if portError {
-		port = "0.0.0.0"
+		port = ":5432"
 	}
 	fmt.Println(port)
 	fmt.Println(portError)
@@ -197,5 +197,5 @@ func main() {
 	router.HandleFunc("/linkTimeSeries/{redirectHash}", linkTimeSeriesEndpoint).Methods("GET")
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	log.Fatal(http.ListenAndServe(port, router))
 }
