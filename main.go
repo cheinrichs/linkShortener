@@ -188,6 +188,10 @@ func main() {
 	port, portError = os.LookupEnv("PORT")
 	defaultPort := "8080"
 
+	host, hostError = os.LookupEnv("HOST")
+	fmt.Println(host)
+	fmt.Println(hostError)
+
 	router := mux.NewRouter()
 
 	router.HandleFunc("/createLink", createLinkEndpoint).Methods("POST")
