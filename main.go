@@ -21,6 +21,8 @@ type Response struct {
 	Data   string `json:"data,omitempty"`
 }
 
+var port, portError = os.LookupEnv("PORT")
+
 var dbURL, err = os.LookupEnv("DATABASE_URL")
 
 func dbConn() (db *sql.DB) {
@@ -180,5 +182,5 @@ func main() {
 	router.HandleFunc("/linkTimeSeries/{redirectHash}", linkTimeSeriesEndpoint).Methods("GET")
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(":12345", router))
+	log.Fatal(http.ListenAndServe(port, router))
 }
