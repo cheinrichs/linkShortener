@@ -80,6 +80,8 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	var id int
 	link := vars["url"]
 
+	fmt.Println(link)
+
 	sqlStatement := `INSERT INTO links (url)
 					 VALUES ($1)
 					 RETURNING id`
