@@ -71,15 +71,14 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
-
-	r.ParseForm()
+	vars := mux.Vars(r)
 
 	//TODO: sanitize the data
 	db := dbConn()
 	defer db.Close()
 
 	var id int
-	link := r.FormValue("url")
+	link := vars["url"]
 
 	sqlStatement := `INSERT INTO links (url)
 					 VALUES ($1)
@@ -185,7 +184,6 @@ func linkTimeSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-
 	router := mux.NewRouter()
 
 	router.HandleFunc("/createLink", createLinkEndpoint).Methods("POST")
