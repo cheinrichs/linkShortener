@@ -181,14 +181,7 @@ func main() {
 
 	dbURL, dbError = os.LookupEnv("DATABASE_URL")
 	port, portError = os.LookupEnv("PORT")
-
-	if portError {
-		port = "5432"
-	}
-	fmt.Println(port)
-	fmt.Println(portError)
-
-	fmt.Println(dbURL)
+	defaultPort := "8080"
 
 	router := mux.NewRouter()
 
@@ -197,5 +190,9 @@ func main() {
 	router.HandleFunc("/linkTimeSeries/{redirectHash}", linkTimeSeriesEndpoint).Methods("GET")
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
 
-	log.Fatal(http.ListenAndServe(":"+port, router))
+	if !(port == "") {
+		log.Fatal(http.ListenAndServe(":"+port, router))
+	} else {
+		log.Fatal(http.ListenAndServe(":"+defaultPort, router))
+	}
 }
