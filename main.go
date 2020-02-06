@@ -24,7 +24,7 @@ type Response struct {
 var host, hostError = os.LookupEnv("HOST")
 var port, portError = os.LookupEnv("PORT")
 var user, userError = os.LookupEnv("USER")
-var dbname, dbnameError = os.LookupEnv("DBNAME")
+var dbname, dbnameError = os.LookupEnv("DATABASE")
 
 func dbConn() (db *sql.DB) {
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable",
