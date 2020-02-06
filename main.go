@@ -14,16 +14,17 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var dbURL string
+var dbError bool
+var port string
+var portError bool
+
 type Timestamp time.Time
 
 type Response struct {
 	Status string `json:"status,omitempty"`
 	Data   string `json:"data,omitempty"`
 }
-
-var port, portError = os.LookupEnv("PORT")
-
-var dbURL, err = os.LookupEnv("DATABASE_URL")
 
 func dbConn() (db *sql.DB) {
 	db, err := sql.Open("postgres", dbURL)
@@ -175,8 +176,17 @@ func linkTimeSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	dbURL, dbError = os.LookupEnv("DATABASE_URL")
+	port, portError = os.LookupEnv("PORT")
+
+	if portError {
+		port = "0.0.0.0"
+	}
 	fmt.Println(port)
 	fmt.Println(portError)
+
+	fmt.Println(dbURL)
 
 	router := mux.NewRouter()
 
