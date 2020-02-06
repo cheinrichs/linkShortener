@@ -89,9 +89,9 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 					 VALUES ($1)
 					 RETURNING id`
 
-	err := db.QueryRow(sqlStatement, link).Scan(&id)
-	if err != nil {
-		panic(err)
+	queryErr := db.QueryRow(sqlStatement, link).Scan(&id)
+	if queryErr != nil {
+		panic(queryErr)
 	}
 
 	encodedString := base64.URLEncoding.EncodeToString([]byte(string(id)))
