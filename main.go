@@ -14,11 +14,10 @@ import (
 )
 
 var dbURL string
-var dbError bool
 var port string
-var portError bool
 var host string
-var hostError bool
+
+var envVariableOk bool
 var defaultPort = "8080"
 
 type Response struct {
@@ -26,6 +25,7 @@ type Response struct {
 	Data   string `json:"data,omitempty"`
 }
 
+//dbConn connects to the database
 func dbConn() (db *sql.DB) {
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -34,41 +34,69 @@ func dbConn() (db *sql.DB) {
 	return db
 }
 
+//redirectEndpoint records a view statistic and redirects the user to a the requested link
+//redirectHash is the id of the links table base64 encoded
 func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 	var requestVars = mux.Vars(r)
 
 	var decodedString, _ = base64.StdEncoding.DecodeString(requestVars["redirectHash"])
+	var linkID = decodedString[0]
 
-	var url string
+	url, findErr := findRedirectURLByID(linkID)
+
+	if findErr != nil {
+		http.Redirect(w, r, host, http.StatusSeeOther)
+	}
+
+	recordViewErr := recordView(linkID)
+	if recordViewErr != nil {
+		panic(recordViewErr)
+	}
+
+	http.Redirect(w, r, url, http.StatusSeeOther)
+}
+
+//findRedirectURLByID returns the record in the database with the given ID
+func findRedirectURLByID(linkID byte) (string, error) {
+	var result string
 
 	db := dbConn()
 	defer db.Close()
 
 	sqlStatement := `SELECT url FROM links WHERE id=$1;`
 
-	row := db.QueryRow(sqlStatement, decodedString[0])
-	err := row.Scan(&url)
+	row := db.QueryRow(sqlStatement, linkID)
+	err := row.Scan(&result)
 	switch err {
 	case sql.ErrNoRows:
-		fmt.Println("No rows were returned!")
+		fmt.Println("no rows")
+		return "", nil
 	case nil:
-		fmt.Println(url)
+		fmt.Println(result)
+		return result, nil
 	default:
-		panic(err)
+		fmt.Println("something else")
+		return "", err
 	}
+}
+
+//recordView increments the view statistics by adding a record to the link_statistics table
+func recordView(linkID byte) error {
+
+	db := dbConn()
+	defer db.Close()
 
 	statisticsSQL := `INSERT INTO link_statistics (link_id)
 					 VALUES ($1)`
 
-	_, statisticsErr := db.Exec(statisticsSQL, decodedString[0])
-	if statisticsErr != nil {
-		panic(statisticsErr)
-	}
+	_, statisticsErr := db.Exec(statisticsSQL, linkID)
 
-	http.Redirect(w, r, url, http.StatusSeeOther)
+	return statisticsErr
 }
 
+//createLinkEndpoint
 func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
+
 	parseErr := r.ParseForm()
 	if parseErr != nil {
 		// Handle error here via logging and then return
@@ -99,6 +127,7 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+//linkStatisticsEndpoint returns a count of how many times a link has been viewed
 func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	type Response struct {
@@ -109,6 +138,7 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 	var requestVars = mux.Vars(r)
 
 	var decodedString, _ = base64.StdEncoding.DecodeString(requestVars["redirectHash"])
+
 	db := dbConn()
 	defer db.Close()
 
@@ -135,11 +165,28 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+//initializeEnv sets up all environment variables and prints warnings if something is missing
+func initializeEnv() {
+	dbURL, envVariableOk = os.LookupEnv("DATABASE_URL")
+	if !envVariableOk {
+		fmt.Println("DATABASE_URL not set.")
+	}
+
+	port, envVariableOk = os.LookupEnv("PORT")
+	if !envVariableOk {
+		fmt.Println("PORT not set.")
+	}
+
+	host, envVariableOk = os.LookupEnv("HOST_URI")
+	if !envVariableOk {
+		fmt.Println("HOST_URI not set.")
+	}
+	fmt.Println("Environment Initialized")
+}
+
 func main() {
 
-	dbURL, dbError = os.LookupEnv("DATABASE_URL")
-	port, portError = os.LookupEnv("PORT")
-	host, hostError = os.LookupEnv("HOST_URI")
+	initializeEnv()
 
 	router := mux.NewRouter()
 
@@ -148,8 +195,10 @@ func main() {
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
 
 	if !(port == "") {
+		fmt.Println("atmzr started and listening on port " + port)
 		log.Fatal(http.ListenAndServe(":"+port, router))
 	} else {
+		fmt.Println("atmzr started and listening on port " + defaultPort)
 		log.Fatal(http.ListenAndServe(":"+defaultPort, router))
 	}
 }
