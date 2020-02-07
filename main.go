@@ -19,6 +19,7 @@ var port string
 var portError bool
 var host string
 var hostError bool
+var defaultPort = "8080"
 
 type Response struct {
 	Status string `json:"status,omitempty"`
@@ -34,9 +35,9 @@ func dbConn() (db *sql.DB) {
 }
 
 func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
+	var requestVars = mux.Vars(r)
 
-	var decodedString, _ = base64.StdEncoding.DecodeString(vars["redirectHash"])
+	var decodedString, _ = base64.StdEncoding.DecodeString(requestVars["redirectHash"])
 
 	var url string
 
@@ -68,12 +69,11 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
+	parseErr := r.ParseForm()
+	if parseErr != nil {
 		// Handle error here via logging and then return
 	}
 
-	//TODO: sanitize the data
 	db := dbConn()
 	defer db.Close()
 
@@ -106,9 +106,9 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 		Data   int    `json:"data,omitempty"`
 	}
 
-	vars := mux.Vars(r)
+	var requestVars = mux.Vars(r)
 
-	var decodedString, _ = base64.StdEncoding.DecodeString(vars["redirectHash"])
+	var decodedString, _ = base64.StdEncoding.DecodeString(requestVars["redirectHash"])
 	db := dbConn()
 	defer db.Close()
 
@@ -140,7 +140,6 @@ func main() {
 	dbURL, dbError = os.LookupEnv("DATABASE_URL")
 	port, portError = os.LookupEnv("PORT")
 	host, hostError = os.LookupEnv("HOST_URI")
-	defaultPort := "8080"
 
 	router := mux.NewRouter()
 
