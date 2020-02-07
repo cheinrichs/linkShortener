@@ -2,25 +2,25 @@ package main
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDecodeID(t *testing.T) {
 	var input = "SQ=="
 	var expected = 73
-	decoded, err := DecodeID(input)
+	result, err := DecodeID(input)
 	if err != nil {
 		t.Errorf("Error: %s", err.Error())
 	}
-	if decoded != expected {
-		t.Errorf("Decoding , result: %d, expected: %d.", decoded, expected)
-	}
+
+	assert.Equal(t, expected, result, "Expecting `73`")
 }
 
 func TestEncodeID(t *testing.T) {
 	var input = 73
 	var expected = "SQ=="
-	encoded := EncodeID(input)
-	if encoded != expected {
-		t.Errorf("Decoding , result: %s, expected: %s.", encoded, expected)
-	}
+	result := EncodeID(input)
+
+	assert.Equal(t, expected, result, "Expecting `SQ==`")
 }
