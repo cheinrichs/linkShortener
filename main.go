@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -20,8 +19,6 @@ var port string
 var portError bool
 var host string
 var hostError bool
-
-type Timestamp time.Time
 
 type Response struct {
 	Status string `json:"status,omitempty"`
@@ -138,48 +135,6 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func linkTimeSeriesEndpoint(w http.ResponseWriter, r *http.Request) {
-	type Response struct {
-		Status string   `json:"status,omitempty"`
-		Data   []string `json:"data,omitempty"`
-	}
-
-	vars := mux.Vars(r)
-
-	var decodedString, _ = base64.StdEncoding.DecodeString(vars["redirectHash"])
-	db := dbConn()
-	defer db.Close()
-
-	sqlStatement := `SELECT viewed_at FROM link_statistics WHERE link_id=$1;`
-
-	rows, err := db.Query(sqlStatement, decodedString[0])
-	defer rows.Close()
-
-	data := make([]string, 0)
-
-	for rows.Next() {
-		var viewedAt Timestamp
-
-		err = rows.Scan(&viewedAt)
-		if err != nil {
-			panic(err)
-		}
-
-		stamp := fmt.Sprintf("\"%s\"", time.Time(viewedAt).Format("2 Jan 2006 15:04:05 -0700 MST"))
-		data = append(data, stamp)
-	}
-	if err != nil {
-		panic(err)
-	}
-
-	response := Response{
-		Status: "success",
-		Data:   data,
-	}
-
-	json.NewEncoder(w).Encode(response)
-}
-
 func main() {
 
 	dbURL, dbError = os.LookupEnv("DATABASE_URL")
@@ -191,7 +146,6 @@ func main() {
 
 	router.HandleFunc("/createLink", createLinkEndpoint).Methods("POST")
 	router.HandleFunc("/linkStatistics/{redirectHash}", linkStatisticsEndpoint).Methods("GET")
-	router.HandleFunc("/linkTimeSeries/{redirectHash}", linkTimeSeriesEndpoint).Methods("GET")
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
 
 	if !(port == "") {
