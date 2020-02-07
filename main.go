@@ -159,6 +159,7 @@ func decodeID(id string) (int, error) {
 	return int(decoded[0]), err
 }
 
+//insertURL actually does the db insert when creating a shortened link
 func insertURL(link string) (int, error) {
 	var id int
 
@@ -174,7 +175,7 @@ func insertURL(link string) (int, error) {
 	return id, queryErr
 }
 
-//linkStatisticsEndpoint returns a count of how many times a link has been viewed
+//linkStatisticsEndpoint takes a hash and returns a count of how many times a link has been viewed
 func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var requestVars = mux.Vars(r)
@@ -199,6 +200,7 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+//getLinkViewCount queries the view data for total number of times a link has been viewed
 func getLinkViewCount(id int) (int, error) {
 	var count int
 	db := dbConn()
