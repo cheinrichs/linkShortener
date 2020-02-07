@@ -138,7 +138,7 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	encodedString := encodeID(id)
+	encodedString := EncodeID(id)
 
 	response := response{
 		Status: "success",
@@ -149,8 +149,8 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//encodeID returns the base64 string version of the link ID
-func encodeID(id int) string {
+//EncodeID returns the base64 string version of the link ID
+func EncodeID(id int) string {
 	return base64.URLEncoding.EncodeToString([]byte(string(id)))
 }
 
