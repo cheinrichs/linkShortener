@@ -154,8 +154,8 @@ func encodeID(id int) string {
 	return base64.URLEncoding.EncodeToString([]byte(string(id)))
 }
 
-//decodeID returns the integer linkID from a base64 encoded string
-func decodeID(id string) (int, error) {
+//DecodeID returns the integer linkID from a base64 encoded string
+func DecodeID(id string) (int, error) {
 	decoded, err := base64.StdEncoding.DecodeString(id)
 	return int(decoded[0]), err
 }
@@ -190,7 +190,7 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var decodedString, _ = decodeID(requestVars["redirectHash"])
+	var decodedString, _ = DecodeID(requestVars["redirectHash"])
 
 	count, countError := getLinkViewCount(decodedString)
 	if countError != nil {
