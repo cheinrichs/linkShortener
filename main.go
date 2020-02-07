@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -179,6 +180,15 @@ func insertURL(link string) (int, error) {
 func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var requestVars = mux.Vars(r)
+
+	if requestVars["redirectHash"] == "" || utf8.RuneCountInString(requestVars["redirectHash"]) < 4 {
+		response := response{
+			Status: "error",
+			Data:   "Please provide a valid hash.",
+		}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
 
 	var decodedString, _ = decodeID(requestVars["redirectHash"])
 
