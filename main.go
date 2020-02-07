@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 
 	"github.com/gorilla/mux"
@@ -23,6 +24,11 @@ var defaultPort = "8080"
 type Response struct {
 	Status string `json:"status,omitempty"`
 	Data   string `json:"data,omitempty"`
+}
+
+type errorResponse struct {
+	Status string `json:"status,omitempty"`
+	Error  error  `json:"data,omitempty"`
 }
 
 //dbConn connects to the database
@@ -99,25 +105,36 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	parseErr := r.ParseForm()
 	if parseErr != nil {
-		// Handle error here via logging and then return
+		response := Response{
+			Status: "error",
+			Data:   "There was a problem parsing your request.",
+		}
+		json.NewEncoder(w).Encode(response)
+		return
 	}
 
-	db := dbConn()
-	defer db.Close()
-
-	var id int
 	link := r.PostFormValue("url")
 
-	sqlStatement := `INSERT INTO links (url)
-					 VALUES ($1)
-					 RETURNING id`
-
-	queryErr := db.QueryRow(sqlStatement, link).Scan(&id)
-	if queryErr != nil {
-		panic(queryErr)
+	_, urlError := url.ParseRequestURI(link)
+	if urlError != nil {
+		response := Response{
+			Status: "error",
+			Data:   "Invalid URL provided.",
+		}
+		json.NewEncoder(w).Encode(response)
 	}
 
-	encodedString := base64.URLEncoding.EncodeToString([]byte(string(id)))
+	id, insertErr := insertURL(link)
+	if insertErr != nil {
+		response := Response{
+			Status: "error",
+			Data:   "There was a problem creating this redirect.",
+		}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	encodedString := encodeID(id)
 
 	response := Response{
 		Status: "success",
@@ -125,6 +142,27 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(response)
+	return
+}
+
+//encodeID returns the base64 string version of the link ID
+func encodeID(id int) string {
+	return base64.URLEncoding.EncodeToString([]byte(string(id)))
+}
+
+func insertURL(link string) (int, error) {
+	var id int
+
+	db := dbConn()
+	defer db.Close()
+
+	sqlStatement := `INSERT INTO links (url)
+					 VALUES ($1)
+					 RETURNING id`
+
+	queryErr := db.QueryRow(sqlStatement, link).Scan(&id)
+
+	return id, queryErr
 }
 
 //linkStatisticsEndpoint returns a count of how many times a link has been viewed
