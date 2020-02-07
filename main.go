@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -21,14 +22,9 @@ var host string
 var envVariableOk bool
 var defaultPort = "8080"
 
-type Response struct {
+type response struct {
 	Status string `json:"status,omitempty"`
 	Data   string `json:"data,omitempty"`
-}
-
-type errorResponse struct {
-	Status string `json:"status,omitempty"`
-	Error  error  `json:"data,omitempty"`
 }
 
 //dbConn connects to the database
@@ -75,13 +71,10 @@ func findRedirectURLByID(linkID byte) (string, error) {
 	err := row.Scan(&result)
 	switch err {
 	case sql.ErrNoRows:
-		fmt.Println("no rows")
 		return "", nil
 	case nil:
-		fmt.Println(result)
 		return result, nil
 	default:
-		fmt.Println("something else")
 		return "", err
 	}
 }
@@ -105,7 +98,7 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	parseErr := r.ParseForm()
 	if parseErr != nil {
-		response := Response{
+		response := response{
 			Status: "error",
 			Data:   "There was a problem parsing your request.",
 		}
@@ -115,18 +108,28 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	link := r.PostFormValue("url")
 
+	if link == "" {
+		response := response{
+			Status: "error",
+			Data:   "No link provided.",
+		}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
 	_, urlError := url.ParseRequestURI(link)
 	if urlError != nil {
-		response := Response{
+		response := response{
 			Status: "error",
 			Data:   "Invalid URL provided.",
 		}
 		json.NewEncoder(w).Encode(response)
+		return
 	}
 
 	id, insertErr := insertURL(link)
 	if insertErr != nil {
-		response := Response{
+		response := response{
 			Status: "error",
 			Data:   "There was a problem creating this redirect.",
 		}
@@ -136,7 +139,7 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	encodedString := encodeID(id)
 
-	response := Response{
+	response := response{
 		Status: "success",
 		Data:   host + encodedString,
 	}
@@ -148,6 +151,12 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 //encodeID returns the base64 string version of the link ID
 func encodeID(id int) string {
 	return base64.URLEncoding.EncodeToString([]byte(string(id)))
+}
+
+//decodeID returns the integer linkID from a base64 encoded string
+func decodeID(id string) (int, error) {
+	decoded, err := base64.StdEncoding.DecodeString(id)
+	return int(decoded[0]), err
 }
 
 func insertURL(link string) (int, error) {
@@ -168,39 +177,46 @@ func insertURL(link string) (int, error) {
 //linkStatisticsEndpoint returns a count of how many times a link has been viewed
 func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
-	type Response struct {
-		Status string `json:"status,omitempty"`
-		Data   int    `json:"data,omitempty"`
-	}
-
 	var requestVars = mux.Vars(r)
 
-	var decodedString, _ = base64.StdEncoding.DecodeString(requestVars["redirectHash"])
+	var decodedString, _ = decodeID(requestVars["redirectHash"])
 
+	count, countError := getLinkViewCount(decodedString)
+	if countError != nil {
+		response := response{
+			Status: "error",
+			Data:   countError.Error(),
+		}
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	response := response{
+		Status: "success",
+		Data:   strconv.Itoa(count),
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
+func getLinkViewCount(id int) (int, error) {
+	var count int
 	db := dbConn()
 	defer db.Close()
 
 	sqlStatement := `SELECT COUNT(*) FROM link_statistics WHERE link_id=$1;`
 
-	var count int
-
-	row := db.QueryRow(sqlStatement, decodedString[0])
+	row := db.QueryRow(sqlStatement, id)
 	err := row.Scan(&count)
 	switch err {
 	case sql.ErrNoRows:
 		count = 0
+		return count, err
 	case nil:
-		fmt.Println(count)
+		return count, err
 	default:
-		panic(err)
+		return -1, err
 	}
-
-	response := Response{
-		Status: "success",
-		Data:   count,
-	}
-
-	json.NewEncoder(w).Encode(response)
 }
 
 //initializeEnv sets up all environment variables and prints warnings if something is missing
