@@ -3,8 +3,9 @@ package datastore
 import (
 	"database/sql"
 
-	postgres "github.com/cheinrichs/linkShortener/datastore/postgres"
+	"github.com/cheinrichs/linkShortener/datastore/postgres"
 
+	//Using pg client
 	_ "github.com/lib/pq"
 )
 
@@ -18,15 +19,13 @@ var (
 
 //DBClient is used to make calls to the database.
 type DBClient interface {
-	findRedirectURLByID(linkID byte) (string, error)
+	FindRedirectURLByID(linkID byte) (string, error)
 
-	recordView(linkID byte) error
+	RecordView(linkID byte) error
 
-	insertURL(link string) (int, error)
+	InsertURL(link string) (int, error)
 
-	getLinkViewCount(id int) (int, error)
-
-	initializeEnv()
+	GetLinkViewCount(id int) (int, error)
 }
 
 //NewClient initializes a DB client
