@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"unicode/utf8"
 
+	"github.com/cheinrichs/linkShortener/datastore"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 )
@@ -23,18 +24,12 @@ var host string
 var envVariableOk bool
 var defaultPort = "8080"
 
+var db *sql.DB
+var dbErr error
+
 type response struct {
 	Status string `json:"status,omitempty"`
 	Data   string `json:"data,omitempty"`
-}
-
-//dbConn connects to the database
-func dbConn() (db *sql.DB) {
-	db, err := sql.Open("postgres", dbURL)
-	if err != nil {
-		panic(err)
-	}
-	return db
 }
 
 //redirectEndpoint records a view statistic and redirects the user to a the requested link
@@ -63,9 +58,6 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 func findRedirectURLByID(linkID byte) (string, error) {
 	var result string
 
-	db := dbConn()
-	defer db.Close()
-
 	sqlStatement := `SELECT url FROM links WHERE id=$1;`
 
 	row := db.QueryRow(sqlStatement, linkID)
@@ -82,9 +74,6 @@ func findRedirectURLByID(linkID byte) (string, error) {
 
 //recordView increments the view statistics by adding a record to the link_statistics table
 func recordView(linkID byte) error {
-
-	db := dbConn()
-	defer db.Close()
 
 	statisticsSQL := `INSERT INTO link_statistics (link_id)
 					 VALUES ($1)`
@@ -164,9 +153,6 @@ func DecodeID(id string) (int, error) {
 func insertURL(link string) (int, error) {
 	var id int
 
-	db := dbConn()
-	defer db.Close()
-
 	sqlStatement := `INSERT INTO links (url)
 					 VALUES ($1)
 					 RETURNING id`
@@ -176,8 +162,8 @@ func insertURL(link string) (int, error) {
 	return id, queryErr
 }
 
-//linkStatisticsEndpoint takes a hash and returns a count of how many times a link has been viewed
-func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
+//LinkStatisticsEndpoint takes a hash and returns a count of how many times a link has been viewed
+func LinkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var requestVars = mux.Vars(r)
 
@@ -212,23 +198,18 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 //getLinkViewCount queries the view data for total number of times a link has been viewed
 func getLinkViewCount(id int) (int, error) {
-	var count int
-	db := dbConn()
-	defer db.Close()
-
-	sqlStatement := `SELECT COUNT(*) FROM link_statistics WHERE link_id=$1;`
-
-	row := db.QueryRow(sqlStatement, id)
-	err := row.Scan(&count)
-	switch err {
-	case sql.ErrNoRows:
-		count = 0
-		return count, err
-	case nil:
-		return count, err
-	default:
-		return -1, err
+	dbClient, dbErr := datastore.NewClient()
+	if dbErr != nil {
+		fmt.Println(dbErr.Error())
+		return 0, dbErr
 	}
+
+	count, clientErr := dbClient.GetLinkViewCount(id)
+	if clientErr != nil {
+		fmt.Println(clientErr.Error())
+		return -1, clientErr
+	}
+	return count, nil
 }
 
 //initializeEnv sets up all environment variables and prints warnings if something is missing
@@ -257,7 +238,7 @@ func main() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/createLink", createLinkEndpoint).Methods("POST")
-	router.HandleFunc("/linkStatistics/{redirectHash}", linkStatisticsEndpoint).Methods("GET")
+	router.HandleFunc("/linkStatistics/{redirectHash}", LinkStatisticsEndpoint).Methods("GET")
 	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
 
 	if !(port == "") {
