@@ -82,7 +82,7 @@ func (wrapper *Wrapper) GetLinkViewCount(id int) (int, error) {
 	var count int
 	sqlStatement := `SELECT COUNT(*) FROM link_statistics WHERE link_id=$1;`
 
-	row := wrapper.client.QueryRow(sqlStatement, 47)
+	row := wrapper.client.QueryRow(sqlStatement, id)
 	err := row.Scan(&count)
 	switch err {
 	case sql.ErrNoRows:
