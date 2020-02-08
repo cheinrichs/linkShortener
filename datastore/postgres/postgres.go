@@ -19,7 +19,7 @@ func NewClient() (*Wrapper, error) {
 
 	dbURL, envVariableOk = os.LookupEnv("DATABASE_URL")
 	if !envVariableOk {
-		fmt.Println("DATABASE_URL not set. inside Postgres")
+		fmt.Println("DATABASE_URL not set.")
 	}
 
 	db, err := sql.Open("postgres", dbURL)
