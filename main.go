@@ -150,16 +150,21 @@ func DecodeID(id string) (int, error) {
 }
 
 //insertURL actually does the db insert when creating a shortened link
-func insertURL(link string) (int, error) {
-	var id int
+func insertURL(url string) (int, error) {
 
-	sqlStatement := `INSERT INTO links (url)
-					 VALUES ($1)
-					 RETURNING id`
+	dbClient, dbErr := datastore.NewClient()
+	if dbErr != nil {
+		fmt.Println(dbErr.Error())
+		return 0, dbErr
+	}
 
-	queryErr := db.QueryRow(sqlStatement, link).Scan(&id)
+	id, clientErr := dbClient.InsertURL(url)
+	if clientErr != nil {
+		fmt.Println(clientErr.Error())
+		return -1, clientErr
+	}
+	return id, nil
 
-	return id, queryErr
 }
 
 //LinkStatisticsEndpoint takes a hash and returns a count of how many times a link has been viewed
