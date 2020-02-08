@@ -1,15 +1,29 @@
-# Link Shortener
+# atmzr
+atmzr (atomizer) is a URL shortening API, developed by Cooper Heinrichs
 
+Currently live online at: http://atmzr.herokuapp.com/
 
-# Motivation
+ 
+# API Reference
 
-# Build Status
+Create a shortened link
 
-# Code Style
+>POST /createLink
+> 
+>{url: "http://www.example.com"}
 
-# Screenshots
+Get Link Statistics
+
+>GET /linkStatistics/{redirectHash}
+
+Redirect using a shortened link
+
+>Get /{redirectHash}
+
 
 # Tech/framework Used
+
+atmzr is written using Go with a couple packages, including Mux router.
 
 # Features
 
@@ -17,14 +31,6 @@
 
 # Installation
 
-# API Reference
-
 # Tests
 
-# How to use?
-
-# Contribute
-
 # Credits
-
-# License
