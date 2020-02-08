@@ -58,29 +58,35 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 func findRedirectURLByID(linkID byte) (string, error) {
 	var result string
 
-	sqlStatement := `SELECT url FROM links WHERE id=$1;`
-
-	row := db.QueryRow(sqlStatement, linkID)
-	err := row.Scan(&result)
-	switch err {
-	case sql.ErrNoRows:
-		return "", nil
-	case nil:
-		return result, nil
-	default:
-		return "", err
+	dbClient, dbErr := datastore.NewClient()
+	if dbErr != nil {
+		fmt.Println(dbErr.Error())
+		return "", dbErr
 	}
+
+	result, recordViewErr := dbClient.FindRedirectURLByID(linkID)
+	if recordViewErr != nil {
+		fmt.Println(recordViewErr.Error())
+		return "", recordViewErr
+	}
+	return result, nil
 }
 
 //recordView increments the view statistics by adding a record to the link_statistics table
 func recordView(linkID byte) error {
 
-	statisticsSQL := `INSERT INTO link_statistics (link_id)
-					 VALUES ($1)`
+	dbClient, dbErr := datastore.NewClient()
+	if dbErr != nil {
+		fmt.Println(dbErr.Error())
+		return dbErr
+	}
 
-	_, statisticsErr := db.Exec(statisticsSQL, linkID)
-
-	return statisticsErr
+	recordViewErr := dbClient.RecordView(linkID)
+	if recordViewErr != nil {
+		fmt.Println(recordViewErr.Error())
+		return recordViewErr
+	}
+	return nil
 }
 
 //createLinkEndpoint
@@ -164,7 +170,6 @@ func insertURL(url string) (int, error) {
 		return -1, clientErr
 	}
 	return id, nil
-
 }
 
 //LinkStatisticsEndpoint takes a hash and returns a count of how many times a link has been viewed
