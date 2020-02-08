@@ -19,7 +19,7 @@ func NewClient() (*Wrapper, error) {
 
 	dbURL, envVariableOk = os.LookupEnv("DATABASE_URL")
 	if !envVariableOk {
-		fmt.Println("DATABASE_URL not set.")
+		fmt.Println("DATABASE_URL not set. inside Postgres")
 	}
 
 	db, err := sql.Open("postgres", dbURL)
@@ -35,13 +35,13 @@ func NewClient() (*Wrapper, error) {
 	return &Wrapper{client: db}, nil
 }
 
-//findRedirectURLByID returns the record in the database with the given ID
-func (client *Wrapper) findRedirectURLByID(linkID byte) (string, error) {
+//FindRedirectURLByID returns the record in the database with the given ID
+func (wrapper *Wrapper) FindRedirectURLByID(linkID byte) (string, error) {
 	var result string
 
 	sqlStatement := `SELECT url FROM links WHERE id=$1;`
 
-	row := Wrapper.client.QueryRow(sqlStatement, linkID)
+	row := wrapper.client.QueryRow(sqlStatement, linkID)
 	err := row.Scan(&result)
 	switch err {
 	case sql.ErrNoRows:
@@ -53,18 +53,44 @@ func (client *Wrapper) findRedirectURLByID(linkID byte) (string, error) {
 	}
 }
 
-func recordView(linkID byte) error {
+//RecordView increments the view statistics by adding a record to the link_statistics table
+func (wrapper *Wrapper) RecordView(linkID byte) error {
 
+	statisticsSQL := `INSERT INTO link_statistics (link_id)
+					 VALUES ($1)`
+
+	_, statisticsErr := wrapper.client.Exec(statisticsSQL, linkID)
+
+	return statisticsErr
 }
 
-func insertURL(link string) (int, error) {
+//InsertURL actually does the db insert when creating a shortened link
+func (wrapper *Wrapper) InsertURL(link string) (int, error) {
+	var id int
 
+	sqlStatement := `INSERT INTO links (url)
+					 VALUES ($1)
+					 RETURNING id`
+
+	queryErr := wrapper.client.QueryRow(sqlStatement, link).Scan(&id)
+
+	return id, queryErr
 }
 
-func getLinkViewCount(id int) (int, error) {
+//GetLinkViewCount queries the view data for total number of times a link has been viewed
+func (wrapper *Wrapper) GetLinkViewCount(id int) (int, error) {
+	var count int
+	sqlStatement := `SELECT COUNT(*) FROM link_statistics WHERE link_id=$1;`
 
-}
-
-func initializeEnv() {
-
+	row := wrapper.client.QueryRow(sqlStatement, 47)
+	err := row.Scan(&count)
+	switch err {
+	case sql.ErrNoRows:
+		count = 0
+		return count, err
+	case nil:
+		return count, err
+	default:
+		return -1, err
+	}
 }
