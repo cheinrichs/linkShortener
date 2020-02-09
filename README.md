@@ -27,6 +27,7 @@ atmzr is written using Go with a couple packages, including Mux router.
 
 # Next steps I'd love to do in the future
 
+1. Use Models for the two tables in the database
 1. Use Redis to cache the redirect URLs
 1. Build a front end with nice UI to shorten URLs
 1. Create user login
