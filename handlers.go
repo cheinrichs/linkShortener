@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	"github.com/cheinrichs/linkShortener/datastore"
+	DBClient "github.com/cheinrichs/linkShortener/datastore"
 	"github.com/gorilla/mux"
 )
 
@@ -75,14 +75,7 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 //insertURL actually does the db insert when creating a shortened link
 func insertURL(url string) (int, error) {
-
-	dbClient, dbErr := datastore.NewClient()
-	if dbErr != nil {
-		fmt.Println(dbErr.Error())
-		return 0, dbErr
-	}
-
-	id, clientErr := dbClient.InsertURL(url)
+	id, clientErr := DBClient.InsertURL(url)
 	if clientErr != nil {
 		fmt.Println(clientErr.Error())
 		return -1, clientErr
@@ -126,13 +119,7 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 //getLinkViewCount queries the view data for total number of times a link has been viewed
 func getLinkViewCount(id int) (int, error) {
-	dbClient, dbErr := datastore.NewClient()
-	if dbErr != nil {
-		fmt.Println(dbErr.Error())
-		return 0, dbErr
-	}
-
-	count, clientErr := dbClient.GetLinkViewCount(id)
+	count, clientErr := DBClient.GetLinkViewCount(id)
 	if clientErr != nil {
 		fmt.Println(clientErr.Error())
 		return -1, clientErr
@@ -166,13 +153,7 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 func findRedirectURLByID(linkID byte) (string, error) {
 	var result string
 
-	dbClient, dbErr := datastore.NewClient()
-	if dbErr != nil {
-		fmt.Println(dbErr.Error())
-		return "", dbErr
-	}
-
-	result, recordViewErr := dbClient.FindRedirectURLByID(linkID)
+	result, recordViewErr := DBClient.FindRedirectURLByID(linkID)
 	if recordViewErr != nil {
 		fmt.Println(recordViewErr.Error())
 		return "", recordViewErr
@@ -183,13 +164,7 @@ func findRedirectURLByID(linkID byte) (string, error) {
 //recordView increments the view statistics by adding a record to the link_statistics table
 func recordView(linkID byte) error {
 
-	dbClient, dbErr := datastore.NewClient()
-	if dbErr != nil {
-		fmt.Println(dbErr.Error())
-		return dbErr
-	}
-
-	recordViewErr := dbClient.RecordView(linkID)
+	recordViewErr := DBClient.RecordView(linkID)
 	if recordViewErr != nil {
 		fmt.Println(recordViewErr.Error())
 		return recordViewErr
