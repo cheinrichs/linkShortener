@@ -18,18 +18,22 @@ Get Link Statistics
 
 Redirect using a shortened link
 
->Get /{redirectHash}
+>GET /{redirectHash}
 
 
 # Tech/framework Used
 
 atmzr is written using Go with a couple packages, including Mux router.
 
-# Features
+# Next steps I'd love to do in the future
 
-# Code Example
-
-# Installation
+1. Use Redis to cache the redirect URLs
+1. Build a front end with nice UI to shorten URLs
+1. Create user login
+1. Allow users to manage their links, replace, delete
+1. Create an endpoint that returns time series data 
+1. Use d3.js to build a nice graph for a link's time series data.
+1. Allow users to create custom link shortcodes
 
 # Tests
 
