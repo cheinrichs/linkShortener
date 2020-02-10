@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -21,6 +22,11 @@ type Mockdb struct {
 
 //FindRedirectURLByID mocked for testing
 func (m Mockdb) FindRedirectURLByID(linkID byte) (string, error) {
+
+	//Used in TestRedirectEndpointNonexistantRedirect
+	if linkID == 65 {
+		return "", errors.New("error: redirect not found")
+	}
 	return "http://www.google.com", nil
 }
 
@@ -52,14 +58,27 @@ func init() {
 //CreateLinkEndpoint
 
 //RedirectEndpoint
-func TestRedirectEndpointValidRedirect(t *testing.T) {
+func TestRedirectEndpointNonexistantRedirect(t *testing.T) {
 
 	request, _ := http.NewRequest("GET", "/QQ==", nil)
 	response := httptest.NewRecorder()
 
 	Router().ServeHTTP(response, request)
 
-	assert.Equal(t, "http://www.google.com", response.Header()["Location"][0], "Redirecting to incorrect url.")
+	assert.Equal(t, "/", response.Header()["Location"][0], "Redirecting to incorrect url.")
+}
+
+//Should redirect to Index
+func TestRedirectEndpointValidRedirect(t *testing.T) {
+
+	request, _ := http.NewRequest("GET", "/SQ==", nil)
+	response := httptest.NewRecorder()
+
+	Router().ServeHTTP(response, request)
+	actual := response.Header()["Location"][0]
+
+	expected := "http://www.google.com"
+	assert.Equal(t, expected, actual, "Redirecting to incorrect url.")
 }
 
 //IndexEndpoint
