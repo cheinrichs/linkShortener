@@ -49,6 +49,23 @@ func init() {
 	db = Mockdb{db: nil}
 }
 
+//CreateLinkEndpoint
+
+//RedirectEndpoint
+
+//IndexEndpoint
+func TestIndexEndpoint(t *testing.T) {
+
+	request, _ := http.NewRequest("GET", "/", nil)
+	response := httptest.NewRecorder()
+
+	Router().ServeHTTP(response, request)
+
+	b, _ := ioutil.ReadAll(response.Body)
+	expected := "<!DOCTYPE html>\n<html>\n\t<head>\n\t\t<meta charset=\"utf-8\">\n\t\t<title>atmzr</title>\n\t\t<style>\n\t\t\tbody {\n\t\t\t\tfont-family: sans-serif;\n\t\t\t}\n\t\t</style>\n\t</head>\n\t<body>\n\t\t<h1>atmzr</h1>\n        <p>Welcome to atmzr!</p>\n        <p>Please visit <a href=\"https://github.com/cheinrichs/linkShortener\">https://github.com/cheinrichs/linkShortener</a> for more information.</p>\n\t</body>\n</html>"
+	assert.Equal(t, expected, string(b), "Existing link returns correct data.")
+}
+
 //LinkStatisticsEndpoint
 //Test link exists and returns correct data
 func TestLinkStatisticsEndpointLinkExistsWithData(t *testing.T) {
@@ -95,6 +112,7 @@ func TestLinkStatisticsEndpointRedirectHashTooSmall(t *testing.T) {
 	assert.Equal(t, "{\"status\":\"error\",\"data\":\"Please provide a valid hash.\"}\n", string(b), "Existing link returns correct data.")
 }
 
+//TestDecodeID makes sure we decode numbers correctly
 func TestDecodeID(t *testing.T) {
 	var input = "SQ=="
 	var expected = 73
@@ -106,6 +124,7 @@ func TestDecodeID(t *testing.T) {
 	assert.Equal(t, expected, result, "Expecting `73`")
 }
 
+//TestEncodeID makes sure we encode numbers correctly
 func TestEncodeID(t *testing.T) {
 	var input = 73
 	var expected = "SQ=="
