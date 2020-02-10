@@ -88,11 +88,11 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	var decodedString, _ = DecodeID(requestVars["redirectHash"])
 
-	count, countError := getLinkViewCount(decodedString)
-	if countError != nil {
+	count, clientErr := db.GetLinkViewCount(decodedString)
+	if clientErr != nil {
 		response := response{
 			Status: "error",
-			Data:   countError.Error(),
+			Data:   clientErr.Error(),
 		}
 		json.NewEncoder(w).Encode(response)
 		return
@@ -106,16 +106,6 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-//getLinkViewCount queries the view data for total number of times a link has been viewed
-func getLinkViewCount(id int) (int, error) {
-	count, clientErr := db.GetLinkViewCount(id)
-	if clientErr != nil {
-		fmt.Println(clientErr.Error())
-		return -1, clientErr
-	}
-	return count, nil
-}
-
 //redirectEndpoint records a view statistic and redirects the user to a the requested link
 //redirectHash is the id of the links table base64 encoded
 func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -124,41 +114,18 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 	var decodedString, _ = base64.StdEncoding.DecodeString(requestVars["redirectHash"])
 	var linkID = decodedString[0]
 
-	url, findErr := findRedirectURLByID(linkID)
+	url, findErr := db.FindRedirectURLByID(linkID)
 
 	if findErr != nil {
 		http.Redirect(w, r, host, http.StatusSeeOther)
 	}
 
-	recordViewErr := recordView(linkID)
-	if recordViewErr != nil {
-		panic(recordViewErr)
-	}
-
-	http.Redirect(w, r, url, http.StatusSeeOther)
-}
-
-//findRedirectURLByID returns the record in the database with the given ID
-func findRedirectURLByID(linkID byte) (string, error) {
-	var result string
-
-	result, recordViewErr := db.FindRedirectURLByID(linkID)
-	if recordViewErr != nil {
-		fmt.Println(recordViewErr.Error())
-		return "", recordViewErr
-	}
-	return result, nil
-}
-
-//recordView increments the view statistics by adding a record to the link_statistics table
-func recordView(linkID byte) error {
-
 	recordViewErr := db.RecordView(linkID)
 	if recordViewErr != nil {
 		fmt.Println(recordViewErr.Error())
-		return recordViewErr
 	}
-	return nil
+
+	http.Redirect(w, r, url, http.StatusSeeOther)
 }
 
 //EncodeID returns the base64 string version of the link ID
