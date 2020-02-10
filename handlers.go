@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -15,6 +16,14 @@ import (
 type response struct {
 	Status string `json:"status,omitempty"`
 	Data   string `json:"data,omitempty"`
+}
+
+var indexTemplate = template.Must(template.ParseFiles("index.tmpl"))
+
+func indexEndpoint(w http.ResponseWriter, r *http.Request) {
+	if err := indexTemplate.Execute(w, ""); err != nil {
+		fmt.Println(err)
+	}
 }
 
 //createLinkEndpoint /createLink makes a redirect link in the database

@@ -17,6 +17,12 @@ type Routes []Route
 
 var routes = Routes{
 	Route{
+		"Index",
+		"GET",
+		"/",
+		indexEndpoint,
+	},
+	Route{
 		"CreateLink",
 		"POST",
 		"/createLink",
