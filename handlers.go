@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"unicode/utf8"
 
-	DBClient "github.com/cheinrichs/linkShortener/datastore"
 	"github.com/gorilla/mux"
 )
 
@@ -52,7 +51,7 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, insertErr := insertURL(link)
+	id, insertErr := db.InsertURL(link)
 	if insertErr != nil {
 		response := response{
 			Status: "error",
@@ -71,16 +70,6 @@ func createLinkEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 	return
-}
-
-//insertURL actually does the db insert when creating a shortened link
-func insertURL(url string) (int, error) {
-	id, clientErr := DBClient.InsertURL(url)
-	if clientErr != nil {
-		fmt.Println(clientErr.Error())
-		return -1, clientErr
-	}
-	return id, nil
 }
 
 //linkStatisticsEndpoint takes a hash and returns a count of how many times a link has been viewed
@@ -119,7 +108,7 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 //getLinkViewCount queries the view data for total number of times a link has been viewed
 func getLinkViewCount(id int) (int, error) {
-	count, clientErr := DBClient.GetLinkViewCount(id)
+	count, clientErr := db.GetLinkViewCount(id)
 	if clientErr != nil {
 		fmt.Println(clientErr.Error())
 		return -1, clientErr
@@ -153,7 +142,7 @@ func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
 func findRedirectURLByID(linkID byte) (string, error) {
 	var result string
 
-	result, recordViewErr := DBClient.FindRedirectURLByID(linkID)
+	result, recordViewErr := db.FindRedirectURLByID(linkID)
 	if recordViewErr != nil {
 		fmt.Println(recordViewErr.Error())
 		return "", recordViewErr
@@ -164,7 +153,7 @@ func findRedirectURLByID(linkID byte) (string, error) {
 //recordView increments the view statistics by adding a record to the link_statistics table
 func recordView(linkID byte) error {
 
-	recordViewErr := DBClient.RecordView(linkID)
+	recordViewErr := db.RecordView(linkID)
 	if recordViewErr != nil {
 		fmt.Println(recordViewErr.Error())
 		return recordViewErr
