@@ -1,7 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"database/sql"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,23 +12,49 @@ import (
 )
 
 func Router() *mux.Router {
-	router := mux.NewRouter()
-
-	router.HandleFunc("/createLink", createLinkEndpoint).Methods("POST")
-	router.HandleFunc("/linkStatistics/{redirectHash}", LinkStatisticsEndpoint).Methods("GET")
-	router.HandleFunc("/{redirectHash}", redirectEndpoint).Methods("GET")
-
-	return router
+	return NewRouter()
 }
 
-func TestLinkStatisticsEndpoint(t *testing.T) {
+type Mockdb struct {
+	db *sql.DB
+}
+
+//FindRedirectURLByID mocked for testing
+func (m Mockdb) FindRedirectURLByID(linkID byte) (string, error) {
+	return "", nil
+}
+
+//RecordView mocked for testing
+func (m Mockdb) RecordView(linkID byte) error {
+	return nil
+}
+
+//InsertURL mocked for testing
+func (m Mockdb) InsertURL(link string) (int, error) {
+	return 1, nil
+}
+
+//GetLinkViewCount mocked for testing
+func (m Mockdb) GetLinkViewCount(id int) (int, error) {
+	return 1, nil
+}
+
+func init() {
+	db = Mockdb{db: nil}
+}
+
+//LinkStatisticsEndpoint
+//Test link exists and returns correct data
+func TestLinkStatisticsEndpointLinkExistsWithData(t *testing.T) {
+
 	request, _ := http.NewRequest("GET", "/linkStatistics/SQ==", nil)
 	response := httptest.NewRecorder()
+
 	Router().ServeHTTP(response, request)
 
-	fmt.Println(response)
+	b, _ := ioutil.ReadAll(response.Body)
 
-	assert.Equal(t, 200, response.Code, "OK response is expected")
+	assert.Equal(t, "{\"status\":\"success\",\"data\":\"1\"}\n", string(b), "Existing link returns correct data.")
 }
 
 func TestDecodeID(t *testing.T) {
