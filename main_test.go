@@ -36,6 +36,12 @@ func (m Mockdb) InsertURL(link string) (int, error) {
 
 //GetLinkViewCount mocked for testing
 func (m Mockdb) GetLinkViewCount(id int) (int, error) {
+
+	//called by TestLinkStatisticsEndpointLinkDoesNotExist
+	if id == 207 {
+		return 0, nil
+	}
+
 	return 1, nil
 }
 
@@ -55,6 +61,38 @@ func TestLinkStatisticsEndpointLinkExistsWithData(t *testing.T) {
 	b, _ := ioutil.ReadAll(response.Body)
 
 	assert.Equal(t, "{\"status\":\"success\",\"data\":\"1\"}\n", string(b), "Existing link returns correct data.")
+}
+
+//Test link does not exist
+func TestLinkStatisticsEndpointLinkDoesNotExist(t *testing.T) {
+	request, _ := http.NewRequest("GET", "/linkStatistics/z6k=", nil)
+	response := httptest.NewRecorder()
+	Router().ServeHTTP(response, request)
+
+	b, _ := ioutil.ReadAll(response.Body)
+
+	assert.Equal(t, "{\"status\":\"success\",\"data\":\"0\"}\n", string(b), "Existing link returns correct data.")
+}
+
+//Test empty redirect hash
+func TestLinkStatisticsEndpointEmptyRedirectHash(t *testing.T) {
+	request, _ := http.NewRequest("GET", "/linkStatistics", nil)
+	response := httptest.NewRecorder()
+	Router().ServeHTTP(response, request)
+
+	b, _ := ioutil.ReadAll(response.Body)
+
+	assert.Equal(t, "{\"status\":\"error\",\"data\":\"Please include a hash.\"}\n", string(b), "Existing link returns correct data.")
+}
+
+//Test redirect hash that's too small
+func TestLinkStatisticsEndpointRedirectHashTooSmall(t *testing.T) {
+	request, _ := http.NewRequest("GET", "/linkStatistics/SQ=", nil)
+	response := httptest.NewRecorder()
+	Router().ServeHTTP(response, request)
+
+	b, _ := ioutil.ReadAll(response.Body)
+	assert.Equal(t, "{\"status\":\"error\",\"data\":\"Please provide a valid hash.\"}\n", string(b), "Existing link returns correct data.")
 }
 
 func TestDecodeID(t *testing.T) {
