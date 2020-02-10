@@ -28,8 +28,12 @@ type DBClient interface {
 	GetLinkViewCount(id int) (int, error)
 }
 
+//Postgres contains all postgresql implementations for the DBClient interface
+type Postgres struct {
+}
+
 //NewClient creates a new postgres database client
-func NewClient() (*sql.DB, error) {
+func (p Postgres) NewClient() (*sql.DB, error) {
 
 	dbURL, envVariableOk = os.LookupEnv("DATABASE_URL")
 	if !envVariableOk {
@@ -50,12 +54,8 @@ func NewClient() (*sql.DB, error) {
 }
 
 //FindRedirectURLByID returns the record in the database with the given ID
-func FindRedirectURLByID(linkID byte) (string, error) {
+func (p Postgres) FindRedirectURLByID(linkID byte) (string, error) {
 
-	db, dbErr := NewClient()
-	if dbErr != nil {
-		return "", dbErr
-	}
 	var result string
 
 	sqlStatement := `SELECT url FROM links WHERE id=$1;`
@@ -76,12 +76,7 @@ func FindRedirectURLByID(linkID byte) (string, error) {
 }
 
 //RecordView increments the view statistics by adding a record to the link_statistics table
-func RecordView(linkID byte) error {
-
-	db, dbErr := NewClient()
-	if dbErr != nil {
-		return dbErr
-	}
+func (p Postgres) RecordView(linkID byte) error {
 
 	statisticsSQL := `INSERT INTO link_statistics (link_id)
 					 VALUES ($1)`
@@ -93,13 +88,8 @@ func RecordView(linkID byte) error {
 }
 
 //InsertURL actually does the db insert when creating a shortened link
-func InsertURL(link string) (int, error) {
+func (p Postgres) InsertURL(link string) (int, error) {
 	var id int
-
-	db, dbErr := NewClient()
-	if dbErr != nil {
-		return -1, dbErr
-	}
 
 	sqlStatement := `INSERT INTO links (url)
 					 VALUES ($1)
@@ -112,13 +102,8 @@ func InsertURL(link string) (int, error) {
 }
 
 //GetLinkViewCount queries the view data for total number of times a link has been viewed
-func GetLinkViewCount(id int) (int, error) {
+func (p Postgres) GetLinkViewCount(id int) (int, error) {
 	var count int
-
-	db, dbErr := NewClient()
-	if dbErr != nil {
-		return -1, dbErr
-	}
 
 	sqlStatement := `SELECT COUNT(*) FROM link_statistics WHERE link_id=$1;`
 
