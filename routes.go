@@ -23,6 +23,12 @@ var routes = Routes{
 		createLinkEndpoint,
 	},
 	Route{
+		"LinkStatisticsError",
+		"GET",
+		"/linkStatistics",
+		linkStatisticsErrorEndpoint,
+	},
+	Route{
 		"LinkStatistics",
 		"GET",
 		"/linkStatistics/{redirectHash}",

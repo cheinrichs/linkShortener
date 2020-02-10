@@ -106,6 +106,16 @@ func linkStatisticsEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+//linkStatisticsErrorEndpoint returns an error if a user hits the linkStatistics endpoint without a hash
+func linkStatisticsErrorEndpoint(w http.ResponseWriter, r *http.Request) {
+	response := response{
+		Status: "error",
+		Data:   "Please include a hash.",
+	}
+
+	json.NewEncoder(w).Encode(response)
+}
+
 //redirectEndpoint records a view statistic and redirects the user to a the requested link
 //redirectHash is the id of the links table base64 encoded
 func redirectEndpoint(w http.ResponseWriter, r *http.Request) {
