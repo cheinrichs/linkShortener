@@ -42,7 +42,7 @@ func initializeEnv() {
 	var dbErr error
 	db, dbErr = datastore.NewClient()
 	if dbErr != nil {
-		fmt.Println("Error instntiating Database.")
+		fmt.Println("Error instantiating Database.")
 	}
 
 	port, envVariableOk = os.LookupEnv("PORT")
