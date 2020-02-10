@@ -11,46 +11,34 @@ import (
 
 var (
 	envVariableOk bool
-	dbURL         string
 	port          string
 	host          string
-	db            *sql.DB
 )
 
-//DBClient is used to make calls to the database.
-type DBClient interface {
-	FindRedirectURLByID(linkID byte) (string, error)
-
-	RecordView(linkID byte) error
-
-	InsertURL(link string) (int, error)
-
-	GetLinkViewCount(id int) (int, error)
-}
-
-//Postgres contains all postgresql implementations for the DBClient interface
+//Postgres wrapper struct, should be easy to swap out if we want different db connections
 type Postgres struct {
+	db *sql.DB
 }
 
 //NewClient creates a new postgres database client
-func (p Postgres) NewClient() (*sql.DB, error) {
+func NewClient() (Postgres, error) {
 
-	dbURL, envVariableOk = os.LookupEnv("DATABASE_URL")
+	dbURL, envVariableOk := os.LookupEnv("DATABASE_URL")
 	if !envVariableOk {
 		fmt.Println("DATABASE_URL not set.")
 	}
 
-	db, err := sql.Open("postgres", dbURL)
+	psqlConnection, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		return nil, err
+		return Postgres{db: nil}, err
 	}
 
-	err = db.Ping()
+	err = psqlConnection.Ping()
 	if err != nil {
-		return nil, err
+		return Postgres{db: nil}, err
 	}
 
-	return db, nil
+	return Postgres{db: psqlConnection}, nil
 }
 
 //FindRedirectURLByID returns the record in the database with the given ID
@@ -60,10 +48,8 @@ func (p Postgres) FindRedirectURLByID(linkID byte) (string, error) {
 
 	sqlStatement := `SELECT url FROM links WHERE id=$1;`
 
-	row := db.QueryRow(sqlStatement, linkID)
+	row := p.db.QueryRow(sqlStatement, linkID)
 	err := row.Scan(&result)
-
-	db.Close()
 
 	switch err {
 	case sql.ErrNoRows:
@@ -81,9 +67,8 @@ func (p Postgres) RecordView(linkID byte) error {
 	statisticsSQL := `INSERT INTO link_statistics (link_id)
 					 VALUES ($1)`
 
-	_, statisticsErr := db.Exec(statisticsSQL, linkID)
+	_, statisticsErr := p.db.Exec(statisticsSQL, linkID)
 
-	db.Close()
 	return statisticsErr
 }
 
@@ -95,9 +80,8 @@ func (p Postgres) InsertURL(link string) (int, error) {
 					 VALUES ($1)
 					 RETURNING id`
 
-	queryErr := db.QueryRow(sqlStatement, link).Scan(&id)
+	queryErr := p.db.QueryRow(sqlStatement, link).Scan(&id)
 
-	db.Close()
 	return id, queryErr
 }
 
@@ -107,10 +91,8 @@ func (p Postgres) GetLinkViewCount(id int) (int, error) {
 
 	sqlStatement := `SELECT COUNT(*) FROM link_statistics WHERE link_id=$1;`
 
-	row := db.QueryRow(sqlStatement, id)
+	row := p.db.QueryRow(sqlStatement, id)
 	err := row.Scan(&count)
-
-	db.Close()
 
 	switch err {
 	case sql.ErrNoRows:
