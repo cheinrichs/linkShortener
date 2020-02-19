@@ -39,4 +39,9 @@ atmzr is written using Go with a couple packages, including Mux router.
 
 # Tests
 
+Tests currently live in the main_test.go file. They are designed to use dependency injection and mock the database object.
+
+To run all unit tests
+
+>go test
 # Credits
